@@ -51,6 +51,72 @@
 #include "virtualcallstub.h"
 #include "stringarraylist.h"
 
+int ClassLoader::instance_no;
+bool ClassLoader::catchAssembly = false;
+Assembly* ClassLoader::pCaughtAssembly = nullptr;
+
+//#define LOG_SAYCLASSNAME
+//#define LOG_LOOKUP
+//#define LOG_CONSTRUCTORS
+//#define LOG_BYNAME
+//#define LOG_API_STUB
+
+const char *ClassLoadLevelToPCHAR(ClassLoadLevel lvl)
+{
+	switch(lvl)
+	{
+		case CLASS_LOAD_BEGIN:
+			return "CLASS_LOAD_BEGIN";
+		case CLASS_LOAD_UNRESTOREDTYPEKEY:
+			return "CLASS_LOAD_UNRESTOREDTYPEKEY";
+		case CLASS_LOAD_UNRESTORED:
+			return "CLASS_LOAD_UNRESTORED";
+		case CLASS_LOAD_APPROXPARENTS:
+			return "CLASS_LOAD_APPROXPARENTS";
+		case CLASS_LOAD_EXACTPARENTS:
+			return "CLASS_LOAD_EXACTPARENTS";
+		case CLASS_DEPENDENCIES_LOADED:
+			return "CLASS_DEPENDENCIES_LOADED";
+		case CLASS_LOADED:
+			return "CLASS_LOADED";
+	}
+}
+int linqVariable = 0;
+void SayClassNameIN(const char *point, TypeHandle h, ClassLoadLevel load_level, int mark)
+{
+#ifdef LOG_SAYCLASSNAME
+	const char* lvl = ClassLoadLevelToPCHAR(load_level);
+	SString cname;
+	//h.GetName(cname);
+	printf("###CLSLOADOUT### IN %d - - - %s %s\n", mark, /*cname.GetUnicode(),*/ lvl, point);
+#endif
+
+
+}
+void SayClassNameOUT(const char *point, TypeHandle h, ULONGLONG duration, ClassLoadLevel load_level, ClassLoadLevel current_level, int mark)
+{
+#ifdef LOG_SAYCLASSNAME
+	const char* llvl = ClassLoadLevelToPCHAR(load_level);
+	const char* clvl = ClassLoadLevelToPCHAR(current_level);
+
+	SString cname;
+	h.GetName(cname);
+	printf("###CLSLOADOUT### OUT %d %llu %S %s %s %s \n", mark, duration, cname.GetUnicode(), clvl, llvl, point);
+
+	char buff[1024];
+	sprintf_s(buff, sizeof(buff), "%S", cname.GetUnicode());	
+	if (!strcmp(buff,"System.Object"))
+	{
+		printf("###CLSLOADOUT### sizeof(TypeHandle) for %S is %d and its binary rep is %08x\n", cname.GetUnicode(), sizeof(h), *(unsigned int*)&h);
+
+	};
+	if (!strcmp(buff,"Xamarin.Forms.Animation"))
+	{
+		printf("###CLSLOADOUT### sizeof(TypeHandle) for %S is %d and its binary rep is %08x\n", cname.GetUnicode(), sizeof(h), *(unsigned int*)&h);
+
+	};
+#endif
+}
 
 // This method determines the "loader module" for an instantiated type
 // or method. The rule must ensure that any types involved in the
@@ -482,6 +548,50 @@ BOOL ClassLoader::IsTypicalInstantiation(Module *pModule, mdToken token, Instant
     return TRUE;
 }
 
+
+typedef void (*clsloadCallbackStub_t)(void**, void*, void*, int);
+void ClassLoader::LoadTypesStub(void **arg1, void *arg2, void *arg3, int code)
+{//TODO make proper argument set
+	const int clsloadTICK = 1;//TODO make set of codes, maybe in form of enum
+	const int clsloadTOCK = 2;
+	const int clsloadLOAD = 3;
+
+	switch(code)
+	{
+		case clsloadTICK:
+		{
+#ifdef LOG_API_STUB
+			printf("###CLSLOADOUT### TICK\n");
+#endif
+			catchAssembly = true;
+			break;
+		}
+		case clsloadTOCK:
+		{
+			catchAssembly = false;
+			*arg1 = static_cast<void*>(pCaughtAssembly);
+
+#ifdef LOG_API_STUB
+			printf("###CLSLOADOUT### TOCK\n");
+#endif
+			break;
+		}
+		case clsloadLOAD:
+		{
+#ifdef LOG_API_STUB
+			printf("###CLSLOADOUT### LOAD\n");
+#endif
+			LoadTypeByNameThrowing((Assembly*)arg3,
+				        NULL,	
+					static_cast<const char*>(arg2),
+					ThrowIfNotFound,
+					ClassLoader::LoadTypes,
+					CLASS_LOADED);
+			break;
+		}
+	}
+
+}
 // External class loader entry point: load a type by name
 /*static*/
 TypeHandle ClassLoader::LoadTypeByNameThrowing(Assembly *pAssembly,
@@ -511,6 +621,11 @@ TypeHandle ClassLoader::LoadTypeByNameThrowing(Assembly *pAssembly,
 #endif
     }
     CONTRACT_END
+
+#ifdef LOG_BYNAME
+	printf("###CLSLOADOUT###LoadTypeByNameThrowing: class name: %s; namespace: %s\n", name, nameSpace?nameSpace:"(null is here :( )");
+#endif
+
 
     NameHandle nameHandle(nameSpace, name);
     if (fLoadTypes == DontLoadTypes)
@@ -555,12 +670,18 @@ TypeHandle ClassLoader::LoadTypeHandleThrowIfFailed(NameHandle* pName, ClassLoad
     CONTRACT_END;
 
     // Lookup in the classes that this class loader knows about
+#ifdef LOG_LOOKUP
+    printf("###CLSLOADOUT### LoadTypeHandleThrowing ENTER\n");
+#endif
     TypeHandle typeHnd = LoadTypeHandleThrowing(pName, level, pLookInThisModuleOnly);
+#ifdef LOG_LOOKUP
+    printf("###CLSLOADOUT### LoadTypeHandleThrowing LEAVE\n");
+#endif
 
     if(typeHnd.IsNull()) {
 
         if ( pName->OKToLoad() ) {
-#ifdef _DEBUG_IMPL
+//#ifdef _DEBUG_IMPL
             {
                 LPCUTF8 szName = pName->GetName();
                 if (szName == NULL)
@@ -569,13 +690,19 @@ TypeHandle ClassLoader::LoadTypeHandleThrowIfFailed(NameHandle* pName, ClassLoad
                 StackSString codeBase;
                 GetAssembly()->GetCodeBase(codeBase);
 
-                LOG((LF_CLASSLOADER, LL_INFO10, "Failed to find class \"%s\" in the manifest for assembly \"%ws\"\n", szName, (LPCWSTR)codeBase));
-            }
+#ifdef LOG_LOOKUP
+		printf("###CLSLOADOUT### LoadTypeHandleThrowIfFailed Failed to find class \"%s\" in the manifest for assembly \"%ws\"\n", szName, (LPCWSTR)codeBase);
 #endif
+                //LOG((LF_CLASSLOADER, LL_INFO10, "Failed to find class \"%s\" in the manifest for assembly \"%ws\"\n", szName, (LPCWSTR)codeBase));
+            }
+//#endif
 
 #ifndef DACCESS_COMPILE
             COUNTER_ONLY(GetPerfCounters().m_Loading.cLoadFailures++);
 
+#ifdef LOG_LOOKUP
+	    printf("###CLSLOADOUT### LoadTypeHandleThrowIfFailed throw.........\n");
+#endif
             m_pAssembly->ThrowTypeLoadException(pName, IDS_CLASSLOAD_GENERAL);
 #else
             DacNotImpl();
@@ -583,6 +710,9 @@ TypeHandle ClassLoader::LoadTypeHandleThrowIfFailed(NameHandle* pName, ClassLoad
         }
     }
 
+#ifdef LOG_LOOKUP
+    printf("###CLSLOADOUT### LoadTypeHandleThrowIfFailed return...\n");
+#endif
     RETURN(typeHnd);
 }
 
@@ -1183,6 +1313,7 @@ void DECLSPEC_NORETURN ClassLoader::ThrowTypeLoadException(TypeKey *pKey,
 
 #endif
 
+	auto start = GetTickCount64();
 
 TypeHandle ClassLoader::LoadConstructedTypeThrowing(TypeKey *pKey,
                                                     LoadTypesFlag fLoadTypes /*= LoadTypes*/,
@@ -1206,6 +1337,7 @@ TypeHandle ClassLoader::LoadConstructedTypeThrowing(TypeKey *pKey,
     }
     CONTRACT_END
 
+
     TypeHandle typeHnd;
     ClassLoadLevel existingLoadLevel = CLASS_LOAD_BEGIN;
 
@@ -1227,7 +1359,9 @@ TypeHandle ClassLoader::LoadConstructedTypeThrowing(TypeKey *pKey,
                 g_IBCLogger.LogTypeHashTableAccess(&typeHnd);
         }
     }
-
+	linqVariable++;
+	int linqForq = linqVariable;
+	SayClassNameIN("LoadConstructedTypeThrowing", typeHnd, existingLoadLevel, linqForq);
     // If something has been published in the tables, and it's at the right level, just return it
     if (!typeHnd.IsNull() && existingLoadLevel >= level)
     {
@@ -1257,6 +1391,8 @@ TypeHandle ClassLoader::LoadConstructedTypeThrowing(TypeKey *pKey,
     RETURN(pLoaderModule->GetClassLoader()->LoadTypeHandleForTypeKey(pKey, typeHnd, level, pInstContext));
 #else
     DacNotImpl();
+	auto duration = GetTickCount64() - start;
+	SayClassNameOUT("LoadConstructedTypeThrowing", typeHnd, duration, level, existingLoadLevel, linqForq);
     RETURN(typeHnd);
 #endif
 }
@@ -2014,6 +2150,9 @@ ClassLoader::LoadTypeHandleThrowing(
             // was to detect a stack overflow possibility and return a null, and
             // so we need to maintain this.
             typeHnd = TypeHandle();
+#ifdef LOG_LOOKUP
+	    printf("###CLSLOADOUT### LoadTypeHandleThrowing too many iterations\n");
+#endif
             break;
         }
         
@@ -2021,6 +2160,9 @@ ClassLoader::LoadTypeHandleThrowing(
         // lock at this point...).  This may discover that the type is actually
         // defined in another module...
         
+#ifdef LOG_LOOKUP
+	printf("###CLSLOADOUT### FindClassModuleThrowing ENTER\n");
+#endif
         if (!pClsLdr->FindClassModuleThrowing(
                 pName, 
                 &typeHnd, 
@@ -2032,9 +2174,18 @@ ClassLoader::LoadTypeHandleThrowing(
                 pName->OKToLoad() ? Loader::Load 
                                   : Loader::DontLoad))
         {   // Didn't find anything, no point looping indefinitely
+#ifdef LOG_LOOKUP
+	    printf("###CLSLOADOUT### FindClassModuleThrowing LEAVE, not found\n");
+#endif
             break;
         }
+#ifdef LOG_LOOKUP
+	printf("###CLSLOADOUT### FindClassModuleThrowing LEAVE\n");
+#endif
         _ASSERTE(!foundEntry.IsNull());
+#ifdef LOG_LOOKUP
+	printf("###CLSLOADOUT### FindClassModuleThrowing after _ASSERTE(!foundEntry.IsNull())\n");
+#endif
 
         if (pName->GetTypeToken() == mdtBaseType)
         {   // We should return the found bucket in the pName
@@ -2043,6 +2194,9 @@ ClassLoader::LoadTypeHandleThrowing(
 
         if (!typeHnd.IsNull())
         {   // Found the cached value, or a constructedtype
+#ifdef LOG_LOOKUP
+	    printf("###CLSLOADOUT### LoadTypeHandleThrowing found cached value or constructed type\n");
+#endif
             if (typeHnd.GetLoadLevel() < level)
             {
                 typeHnd = pClsLdr->LoadTypeDefThrowing(
@@ -2054,7 +2208,12 @@ ClassLoader::LoadTypeHandleThrowing(
                     level);
             }
             break;
-        }
+        } else
+	{
+#ifdef LOG_LOOKUP
+		printf("###CLSLOADOUT### LoadTypeHandleThrowing not found cached value or constructed type\n");
+#endif
+	}
         
         // Found a cl, pModule pair            
         
@@ -2063,6 +2222,9 @@ ClassLoader::LoadTypeHandleThrowing(
         // code:#LoadTypeHandle_TypeForwarded).
         if (pFoundModule->GetClassLoader() == pClsLdr)
         {
+#ifdef LOG_LOOKUP
+	    printf("###CLSLOADOUT### LoadTypeHandleThrowing not forwarded type\n");
+#endif
             BOOL fTrustTD = TRUE;
 #ifndef DACCESS_COMPILE
             CONTRACT_VIOLATION(ThrowsViolation);
@@ -2126,6 +2288,9 @@ ClassLoader::LoadTypeHandleThrowing(
         }
         else
         {   //#LoadTypeHandle_TypeForwarded
+#ifdef LOG_LOOKUP
+	    printf("###CLSLOADOUT### LoadTypeHandleThrowing forwarded type\n");
+#endif
             // pName is a host instance so it's okay to set fields in it in a DAC build
             HashedTypeEntry& bucket = pName->GetBucket();
 
@@ -2155,7 +2320,12 @@ ClassLoader::LoadTypeHandleThrowing(
             (foundEntry.GetClassHashBasedEntryValue()->GetData() != typeHnd.AsPtr()))
         {
             foundEntry.GetClassHashBasedEntryValue()->SetData(typeHnd.AsPtr());
-        }
+        }else
+	{
+#ifdef LOG_LOOKUP
+	    printf("###CLSLOADOUT### LoadTypeHandleThrowing typeHnd is null :(\n");
+#endif
+	}
 #endif // !DACCESS_COMPILE
     }
 
@@ -2601,9 +2771,13 @@ ClassLoader::ClassLoader(Assembly *pAssembly)
     m_dwMethodDescData      = 0;
     m_dwEEClassData         = 0;
 #endif
+#ifdef LOG_CONSTRUCTORS
+	printf("###CLSLOADOUT### CONSTRUCTOR%d\n", ++instance_no); 
+#endif
 }
 
-
+typedef void (*clsloadCallbackStub_t)(void**, void*, void*, int);
+clsloadCallbackStub_t clsloadCallbackStub = nullptr;
 //----------------------------------------------------------------------------
 // This function completes the initialization of the ClassLoader. It can
 // assume the constructor is run and that the function is entered with
@@ -2614,6 +2788,9 @@ ClassLoader::ClassLoader(Assembly *pAssembly)
 VOID ClassLoader::Init(AllocMemTracker *pamTracker)
 {
     STANDARD_VM_CONTRACT;
+
+    pCaughtAssembly = GetAssembly();
+    catchAssembly = false;
 
     m_pUnresolvedClassHash = PendingTypeLoadTable::Create(GetAssembly()->GetLowFrequencyHeap(), 
                                                           UNRESOLVED_CLASS_HASH_BUCKETS, 
@@ -2640,6 +2817,7 @@ VOID ClassLoader::Init(AllocMemTracker *pamTracker)
     CorTypeInfo::CheckConsistency();
 #endif
 
+    clsloadCallbackStub = &ClassLoader::LoadTypesStub;
 }
 
 #endif // #ifndef DACCESS_COMPILE
@@ -2669,6 +2847,10 @@ TypeHandle ClassLoader::LoadTypeDefOrRefOrSpecThrowing(Module *pModule,
     }
     CONTRACT_END
 
+	ClassLoadLevel existingLoadLevel = CLASS_LOAD_BEGIN;/**/
+	auto start = GetTickCount64();
+
+
     if (TypeFromToken(typeDefOrRefOrSpec) == mdtTypeSpec) 
     {
         ULONG cSig;
@@ -2688,11 +2870,15 @@ TypeHandle ClassLoader::LoadTypeDefOrRefOrSpecThrowing(Module *pModule,
         SigPointer sigptr(pSig, cSig);
         TypeHandle typeHnd = sigptr.GetTypeHandleThrowing(pModule, pTypeContext, fLoadTypes, 
                                                           level, dropGenericArgumentLevel, pSubst);
+	existingLoadLevel = typeHnd.GetLoadLevel();
 #ifndef DACCESS_COMPILE
         if ((fNotFoundAction == ThrowIfNotFound) && typeHnd.IsNull())
             pModule->GetAssembly()->ThrowTypeLoadException(pInternalImport, typeDefOrRefOrSpec,
                                                            IDS_CLASSLOAD_GENERAL);
 #endif
+	auto duration = GetTickCount64() - start;
+
+	SayClassNameOUT("LoadTypeDefOrRefOrSpecThrowing", typeHnd, duration, level, existingLoadLevel, 0);
         RETURN (typeHnd);
     }
     else
@@ -2736,12 +2922,17 @@ TypeHandle ClassLoader::LoadTypeDefThrowing(Module *pModule,
         SUPPORTS_DAC;
     }
     CONTRACT_END;
+	
+    	auto start = GetTickCount64();
 
     TypeHandle typeHnd;
 
     // First, attempt to find the class if it is already loaded
     ClassLoadLevel existingLoadLevel = CLASS_LOAD_BEGIN;
     typeHnd = pModule->LookupTypeDef(typeDef, &existingLoadLevel);
+	linqVariable++;
+	int linqForq = linqVariable;
+	SayClassNameIN("LoadTypeDefThrowing", typeHnd, existingLoadLevel, linqForq);
     if (!typeHnd.IsNull())
     {
 #ifndef DACCESS_COMPILE
@@ -2903,6 +3094,8 @@ Exit:
     ;
     END_INTERIOR_STACK_PROBE;
     
+	auto duration = GetTickCount64() - start;
+	SayClassNameOUT("LoadTypeDefThrowing", typeHnd, duration, level, existingLoadLevel, linqForq);
     RETURN(typeHnd);
 }
 
@@ -2936,6 +3129,8 @@ TypeHandle ClassLoader::LoadTypeDefOrRefThrowing(Module *pModule,
     }
     CONTRACT_END;
 
+	auto start = GetTickCount64();
+
     // NotFoundAction could be the bizarre 'ThrowButNullV11McppWorkaround', 
     //  which means ThrowIfNotFound EXCEPT if this might be the Everett MCPP 
     //  Nil-token ResolutionScope for value type.  In that case, it means 
@@ -2953,6 +3148,9 @@ TypeHandle ClassLoader::LoadTypeDefOrRefThrowing(Module *pModule,
     // First, attempt to find the class if it is already loaded
     ClassLoadLevel existingLoadLevel = CLASS_LOAD_BEGIN;
     TypeHandle typeHnd = LookupTypeDefOrRefInModule(pModule, typeDefOrRef, &existingLoadLevel);
+	linqVariable++;
+	int linqForq = linqVariable;
+	SayClassNameIN("LoadTypeDefOrRefThrowin", typeHnd, existingLoadLevel, linqForq);
     if (!typeHnd.IsNull())
     {
         if (existingLoadLevel < level)
@@ -3078,6 +3276,8 @@ TypeHandle ClassLoader::LoadTypeDefOrRefThrowing(Module *pModule,
 #endif
     }
 
+	auto duration = GetTickCount64() - start;
+	SayClassNameOUT("LoadTypeDefOrRefThrowing", thRes, duration, level, existingLoadLevel, linqForq);
     RETURN(thRes);
 }
 

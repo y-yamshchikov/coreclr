@@ -16,6 +16,12 @@
     extern "C" int function(__VA_ARGS__); \
     typedef int (*function##_ptr)(__VA_ARGS__)
     
+CORECLR_HOSTING_API(clsload_stub,
+            void** arg1,
+	    void* arg2,
+	    void* arg3,
+	    int code);
+
 CORECLR_HOSTING_API(coreclr_initialize,
             const char* exePath,
             const char* appDomainFriendlyName,

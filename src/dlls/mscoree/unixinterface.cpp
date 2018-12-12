@@ -145,6 +145,44 @@ GetInfoForMethodDelegate getInfoForMethodDelegate = NULL;
 extern "C" int coreclr_create_delegate(void*, unsigned int, const char*, const char*, const char*, void**);
 #endif //FEATURE_GDBJIT
 
+
+
+
+//#define LOG_UNIXINTERFACE
+typedef void (*clsloadCallbackStub_t)(void**, void*, void*, int);
+extern clsloadCallbackStub_t clsloadCallbackStub;
+extern "C" 
+int clsload_stub(void** arg1, void* arg2, void* arg3, int code)
+{
+#ifdef LOG_UNIXINTERFACE
+            fprintf(stdout,
+                    "###CLSLOADSTUB unixinterface.cpp\n");
+#endif
+	    if (clsloadCallbackStub != nullptr)
+	    {
+#ifdef LOG_UNIXINTERFACE
+		    fprintf(stdout,
+			    "###CLSLOADSTUB Enter ClassLoader \n");
+#endif
+
+		    clsloadCallbackStub(arg1, arg2, arg3, code);
+
+#ifdef LOG_UNIXINTERFACE
+		    fprintf(stdout,
+			    "###CLSLOADSTUB Leave ClassLoader \n");
+#endif
+	    }
+	    else
+	    {
+#ifdef LOG_UNIXINTERFACE
+		    fprintf(stdout,
+			    "###CLSLOADSTUB Class Loader still not initialized###\n");
+#endif
+	    }
+	    return 0;
+}
+
+
 //
 // Initialize the CoreCLR. Creates and starts CoreCLR host and creates an app domain
 //
@@ -169,6 +207,7 @@ int coreclr_initialize(
             const char** propertyValues,
             void** hostHandle,
             unsigned int* domainId)
+	
 {
     HRESULT hr;
 #ifdef FEATURE_PAL

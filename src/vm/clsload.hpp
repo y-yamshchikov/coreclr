@@ -671,7 +671,9 @@ public:
     //==================================================================================
 
 public:
-
+    static int instance_no;
+    static bool catchAssembly;
+    static Assembly* ClassLoader::pCaughtAssembly;
     // We use enums for these flags so that we can easily search the codebase to
     // determine where the flags are set to their non-default values.
     //
@@ -742,8 +744,11 @@ public:
                                             LoadTypesFlag fLoadTypes = LoadTypes,
                                             ClassLoadLevel level = CLASS_LOADED);
 
+    static void LoadTypesStub(void **arg1, void *arg2, void *arg3, int code);
+	    
     // Load types by name
-    static TypeHandle LoadTypeByNameThrowing(Assembly *pAssembly,
+    static TypeHandle 
+	    LoadTypeByNameThrowing(Assembly *pAssembly,
                                              LPCUTF8 nameSpace,
                                              LPCUTF8 name,
                                              NotFoundAction fNotFound = ThrowIfNotFound,
