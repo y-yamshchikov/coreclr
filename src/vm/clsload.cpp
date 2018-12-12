@@ -51,6 +51,45 @@
 #include "virtualcallstub.h"
 #include "stringarraylist.h"
 
+const char *ClassLoadLevelToPCHAR(ClassLoadLevel lvl)
+{
+	switch(lvl)
+	{
+		case CLASS_LOAD_BEGIN:
+			return "CLASS_LOAD_BEGIN";
+		case CLASS_LOAD_UNRESTOREDTYPEKEY:
+			return "CLASS_LOAD_UNRESTOREDTYPEKEY";
+		case CLASS_LOAD_UNRESTORED:
+			return "CLASS_LOAD_UNRESTORED";
+		case CLASS_LOAD_APPROXPARENTS:
+			return "CLASS_LOAD_APPROXPARENTS";
+		case CLASS_LOAD_EXACTPARENTS:
+			return "CLASS_LOAD_EXACTPARENTS";
+		case CLASS_DEPENDENCIES_LOADED:
+			return "CLASS_DEPENDENCIES_LOADED";
+		case CLASS_LOADED:
+			return "CLASS_LOADED";
+	}
+}
+int linqVariable = 0;
+void SayClassNameIN(const char *point, TypeHandle h, ClassLoadLevel load_level, int mark)
+{
+	const char* lvl = ClassLoadLevelToPCHAR(load_level);
+	SString cname;
+	//h.GetName(cname);
+	printf("###CLSLOADOUT### IN %d - - - %s %s\n", mark, /*cname.GetUnicode(),*/ lvl, point);
+
+
+}
+void SayClassNameOUT(const char *point, TypeHandle h, ULONGLONG duration, ClassLoadLevel load_level, ClassLoadLevel current_level, int mark)
+{
+	const char* llvl = ClassLoadLevelToPCHAR(load_level);
+	const char* clvl = ClassLoadLevelToPCHAR(current_level);
+
+	SString cname;
+	h.GetName(cname);
+	printf("###CLSLOADOUT### OUT %d %llu %S %s %s %s\n", mark, duration, cname.GetUnicode(), clvl, llvl, point);
+}
 
 // This method determines the "loader module" for an instantiated type
 // or method. The rule must ensure that any types involved in the
@@ -484,6 +523,7 @@ BOOL ClassLoader::IsTypicalInstantiation(Module *pModule, mdToken token, Instant
 
 // External class loader entry point: load a type by name
 /*static*/
+__attribute__ ((visibility ("default")))
 TypeHandle ClassLoader::LoadTypeByNameThrowing(Assembly *pAssembly,
                                                LPCUTF8 nameSpace,
                                                LPCUTF8 name,
@@ -511,6 +551,8 @@ TypeHandle ClassLoader::LoadTypeByNameThrowing(Assembly *pAssembly,
 #endif
     }
     CONTRACT_END
+	printf("###CLSLOADOUT###LoadTypeByNameThrowing: class name: %s; namespace: %s\n", name, nameSpace);
+
 
     NameHandle nameHandle(nameSpace, name);
     if (fLoadTypes == DontLoadTypes)
@@ -1183,6 +1225,7 @@ void DECLSPEC_NORETURN ClassLoader::ThrowTypeLoadException(TypeKey *pKey,
 
 #endif
 
+	auto start = GetTickCount64();
 
 TypeHandle ClassLoader::LoadConstructedTypeThrowing(TypeKey *pKey,
                                                     LoadTypesFlag fLoadTypes /*= LoadTypes*/,
@@ -1206,6 +1249,7 @@ TypeHandle ClassLoader::LoadConstructedTypeThrowing(TypeKey *pKey,
     }
     CONTRACT_END
 
+
     TypeHandle typeHnd;
     ClassLoadLevel existingLoadLevel = CLASS_LOAD_BEGIN;
 
@@ -1227,7 +1271,9 @@ TypeHandle ClassLoader::LoadConstructedTypeThrowing(TypeKey *pKey,
                 g_IBCLogger.LogTypeHashTableAccess(&typeHnd);
         }
     }
-
+	linqVariable++;
+	int linqForq = linqVariable;
+	SayClassNameIN("LoadConstructedTypeThrowing", typeHnd, existingLoadLevel, linqForq);
     // If something has been published in the tables, and it's at the right level, just return it
     if (!typeHnd.IsNull() && existingLoadLevel >= level)
     {
@@ -1257,6 +1303,8 @@ TypeHandle ClassLoader::LoadConstructedTypeThrowing(TypeKey *pKey,
     RETURN(pLoaderModule->GetClassLoader()->LoadTypeHandleForTypeKey(pKey, typeHnd, level, pInstContext));
 #else
     DacNotImpl();
+	auto duration = GetTickCount64() - start;
+	SayClassNameOUT("LoadConstructedTypeThrowing", typeHnd, duration, level, existingLoadLevel, linqForq);
     RETURN(typeHnd);
 #endif
 }
@@ -2669,6 +2717,10 @@ TypeHandle ClassLoader::LoadTypeDefOrRefOrSpecThrowing(Module *pModule,
     }
     CONTRACT_END
 
+	ClassLoadLevel existingLoadLevel = CLASS_LOAD_BEGIN;/**/
+	auto start = GetTickCount64();
+
+
     if (TypeFromToken(typeDefOrRefOrSpec) == mdtTypeSpec) 
     {
         ULONG cSig;
@@ -2688,11 +2740,15 @@ TypeHandle ClassLoader::LoadTypeDefOrRefOrSpecThrowing(Module *pModule,
         SigPointer sigptr(pSig, cSig);
         TypeHandle typeHnd = sigptr.GetTypeHandleThrowing(pModule, pTypeContext, fLoadTypes, 
                                                           level, dropGenericArgumentLevel, pSubst);
+	existingLoadLevel = typeHnd.GetLoadLevel();
 #ifndef DACCESS_COMPILE
         if ((fNotFoundAction == ThrowIfNotFound) && typeHnd.IsNull())
             pModule->GetAssembly()->ThrowTypeLoadException(pInternalImport, typeDefOrRefOrSpec,
                                                            IDS_CLASSLOAD_GENERAL);
 #endif
+	auto duration = GetTickCount64() - start;
+
+	SayClassNameOUT("LoadTypeDefOrRefOrSpecThrowing", typeHnd, duration, level, existingLoadLevel, 0);
         RETURN (typeHnd);
     }
     else
@@ -2736,12 +2792,17 @@ TypeHandle ClassLoader::LoadTypeDefThrowing(Module *pModule,
         SUPPORTS_DAC;
     }
     CONTRACT_END;
+	
+    	auto start = GetTickCount64();
 
     TypeHandle typeHnd;
 
     // First, attempt to find the class if it is already loaded
     ClassLoadLevel existingLoadLevel = CLASS_LOAD_BEGIN;
     typeHnd = pModule->LookupTypeDef(typeDef, &existingLoadLevel);
+	linqVariable++;
+	int linqForq = linqVariable;
+	SayClassNameIN("LoadTypeDefThrowing", typeHnd, existingLoadLevel, linqForq);
     if (!typeHnd.IsNull())
     {
 #ifndef DACCESS_COMPILE
@@ -2903,6 +2964,8 @@ Exit:
     ;
     END_INTERIOR_STACK_PROBE;
     
+	auto duration = GetTickCount64() - start;
+	SayClassNameOUT("LoadTypeDefThrowing", typeHnd, duration, level, existingLoadLevel, linqForq);
     RETURN(typeHnd);
 }
 
@@ -2936,6 +2999,8 @@ TypeHandle ClassLoader::LoadTypeDefOrRefThrowing(Module *pModule,
     }
     CONTRACT_END;
 
+	auto start = GetTickCount64();
+
     // NotFoundAction could be the bizarre 'ThrowButNullV11McppWorkaround', 
     //  which means ThrowIfNotFound EXCEPT if this might be the Everett MCPP 
     //  Nil-token ResolutionScope for value type.  In that case, it means 
@@ -2953,6 +3018,9 @@ TypeHandle ClassLoader::LoadTypeDefOrRefThrowing(Module *pModule,
     // First, attempt to find the class if it is already loaded
     ClassLoadLevel existingLoadLevel = CLASS_LOAD_BEGIN;
     TypeHandle typeHnd = LookupTypeDefOrRefInModule(pModule, typeDefOrRef, &existingLoadLevel);
+	linqVariable++;
+	int linqForq = linqVariable;
+	SayClassNameIN("LoadTypeDefOrRefThrowin", typeHnd, existingLoadLevel, linqForq);
     if (!typeHnd.IsNull())
     {
         if (existingLoadLevel < level)
@@ -3078,6 +3146,8 @@ TypeHandle ClassLoader::LoadTypeDefOrRefThrowing(Module *pModule,
 #endif
     }
 
+	auto duration = GetTickCount64() - start;
+	SayClassNameOUT("LoadTypeDefOrRefThrowing", thRes, duration, level, existingLoadLevel, linqForq);
     RETURN(thRes);
 }
 

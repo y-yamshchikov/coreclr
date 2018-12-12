@@ -743,7 +743,9 @@ public:
                                             ClassLoadLevel level = CLASS_LOADED);
 
     // Load types by name
-    static TypeHandle LoadTypeByNameThrowing(Assembly *pAssembly,
+    static TypeHandle 
+	    __attribute__ ((visibility ("default"))) 
+	    LoadTypeByNameThrowing(Assembly *pAssembly,
                                              LPCUTF8 nameSpace,
                                              LPCUTF8 name,
                                              NotFoundAction fNotFound = ThrowIfNotFound,

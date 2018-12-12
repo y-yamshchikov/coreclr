@@ -187,6 +187,7 @@ ClassLoader::CreateTypeHandleForNonCanonicalGenericInstantiation(
         POSTCONDITION(RETVAL.CheckMatchesKey(pTypeKey));
     }
     CONTRACT_END
+	    
 
     Module *pLoaderModule = ClassLoader::ComputeLoaderModule(pTypeKey);
     LoaderAllocator* pAllocator=pLoaderModule->GetLoaderAllocator();

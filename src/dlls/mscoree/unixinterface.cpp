@@ -145,6 +145,17 @@ GetInfoForMethodDelegate getInfoForMethodDelegate = NULL;
 extern "C" int coreclr_create_delegate(void*, unsigned int, const char*, const char*, const char*, void**);
 #endif //FEATURE_GDBJIT
 
+
+
+
+extern "C" 
+int clsload_stub(const char* stubArg)
+{
+            fprintf(stdout,
+                    "###CLSLOADSTUB###\n");
+}
+
+
 //
 // Initialize the CoreCLR. Creates and starts CoreCLR host and creates an app domain
 //
@@ -169,6 +180,7 @@ int coreclr_initialize(
             const char** propertyValues,
             void** hostHandle,
             unsigned int* domainId)
+	
 {
     HRESULT hr;
 #ifdef FEATURE_PAL
