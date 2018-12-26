@@ -148,11 +148,30 @@ extern "C" int coreclr_create_delegate(void*, unsigned int, const char*, const c
 
 
 
+
+typedef void (*clsloadCallbackStub_t)(const char*, const char*, const char*, int);
+extern clsloadCallbackStub_t clsloadCallbackStub;
 extern "C" 
-int clsload_stub(const char* stubArg)
+int clsload_stub(const char* arg1, const char* arg2, const char* arg3, int code)
 {
             fprintf(stdout,
-                    "###CLSLOADSTUB###\n");
+                    "###CLSLOADSTUB %s %s %s %d\n", arg1, arg2, arg3, code);
+	    if (clsloadCallbackStub != nullptr)
+	    {
+		    fprintf(stdout,
+			    "###CLSLOADSTUB Enter ClassLoader \n");
+
+		    clsloadCallbackStub(arg1, arg2, arg3, code);
+
+		    fprintf(stdout,
+			    "###CLSLOADSTUB Leave ClassLoader \n");
+	    }
+	    else
+	    {
+		    fprintf(stdout,
+			    "###CLSLOADSTUB Class Loader still not initialized###\n");
+	    }
+	    return 0;
 }
 
 

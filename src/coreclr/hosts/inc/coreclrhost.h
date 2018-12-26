@@ -17,7 +17,10 @@
     typedef int (*function##_ptr)(__VA_ARGS__)
     
 CORECLR_HOSTING_API(clsload_stub,
-	    const char* stubArg);
+            const char* arg1,
+	    const char* arg2,
+	    const char* arg3,
+	    int code);
 
 CORECLR_HOSTING_API(coreclr_initialize,
             const char* exePath,
