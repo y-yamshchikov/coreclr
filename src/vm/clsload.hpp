@@ -744,7 +744,7 @@ public:
                                             LoadTypesFlag fLoadTypes = LoadTypes,
                                             ClassLoadLevel level = CLASS_LOADED);
 
-    static void LoadTypesStub(const char *arg1, const char *arg2, const char *arg3, int code);
+    static void LoadTypesStub(void **arg1, void *arg2, void *arg3, int code);
 	    
     // Load types by name
     static TypeHandle 

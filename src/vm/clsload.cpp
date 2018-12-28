@@ -93,6 +93,19 @@ void SayClassNameOUT(const char *point, TypeHandle h, ULONGLONG duration, ClassL
 	SString cname;
 	h.GetName(cname);
 	printf("###CLSLOADOUT### OUT %d %llu %S %s %s %s \n", mark, duration, cname.GetUnicode(), clvl, llvl, point);
+
+	char buff[1024];
+	sprintf_s(buff, sizeof(buff), "%S", cname.GetUnicode());	
+	if (!strcmp(buff,"System.Object"))
+	{
+		printf("###CLSLOADOUT### sizeof(TypeHandle) for %S is %d and its binary rep is %08x\n", cname.GetUnicode(), sizeof(h), *(unsigned int*)&h);
+
+	};
+	if (!strcmp(buff,"Xamarin.Forms.Animation"))
+	{
+		printf("###CLSLOADOUT### sizeof(TypeHandle) for %S is %d and its binary rep is %08x\n", cname.GetUnicode(), sizeof(h), *(unsigned int*)&h);
+
+	};
 }
 
 // This method determines the "loader module" for an instantiated type
@@ -526,18 +539,15 @@ BOOL ClassLoader::IsTypicalInstantiation(Module *pModule, mdToken token, Instant
 }
 
 
-typedef void (*clsloadCallbackStub_t)(const char*, const char*, const char*, int);
-void ClassLoader::LoadTypesStub(const char *arg1, const char *arg2, const char *arg3, int code)
-{
+typedef void (*clsloadCallbackStub_t)(void**, void*, void*, int);
+void ClassLoader::LoadTypesStub(void **arg1, void *arg2, void *arg3, int code)
+{//TODO make proper argument set
 	const int clsloadTICK = 1;
 	const int clsloadTOCK = 2;
+	const int clsloadLOAD = 3;
+
 	switch(code)
 	{
-		case 666:
-		{	
-			printf("###CLSLOADOUT###you are inside the System! arg1=%s arg2=%s arg3=%s code=%d\n", arg1, arg2, arg3, code);
-			break;
-		}
 		case clsloadTICK:
 		{
 			printf("###CLSLOADOUT### TICK\n");
@@ -547,15 +557,20 @@ void ClassLoader::LoadTypesStub(const char *arg1, const char *arg2, const char *
 		case clsloadTOCK:
 		{
 			catchAssembly = false;
-
-			/*LoadTypeByNameThrowing(pCaughtAssembly,
-				        NULL,	
-					"Xamarin.Forms.BindingBase",
-					ThrowIfNotFound,
-					ClassLoader::LoadTypes,
-					CLASS_LOADED);*/
+			*arg1 = static_cast<void*>(pCaughtAssembly);
 
 			printf("###CLSLOADOUT### TOCK\n");
+			break;
+		}
+		case clsloadLOAD:
+		{
+			printf("###CLSLOADOUT### LOAD\n");
+			LoadTypeByNameThrowing((Assembly*)arg3,
+				        NULL,	
+					static_cast<const char*>(arg2),
+					ThrowIfNotFound,
+					ClassLoader::LoadTypes,
+					CLASS_LOADED);
 			break;
 		}
 	}
@@ -2710,7 +2725,7 @@ ClassLoader::ClassLoader(Assembly *pAssembly)
 	printf("###CLSLOADOUT### CONSTRUCTOR%d\n", ++instance_no); 
 }
 
-typedef void (*clsloadCallbackStub_t)(const char*, const char*, const char*, int);
+typedef void (*clsloadCallbackStub_t)(void**, void*, void*, int);
 clsloadCallbackStub_t clsloadCallbackStub = nullptr;
 //----------------------------------------------------------------------------
 // This function completes the initialization of the ClassLoader. It can

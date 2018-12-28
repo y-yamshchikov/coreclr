@@ -149,13 +149,13 @@ extern "C" int coreclr_create_delegate(void*, unsigned int, const char*, const c
 
 
 
-typedef void (*clsloadCallbackStub_t)(const char*, const char*, const char*, int);
+typedef void (*clsloadCallbackStub_t)(void**, void*, void*, int);
 extern clsloadCallbackStub_t clsloadCallbackStub;
 extern "C" 
-int clsload_stub(const char* arg1, const char* arg2, const char* arg3, int code)
+int clsload_stub(void** arg1, void* arg2, void* arg3, int code)
 {
             fprintf(stdout,
-                    "###CLSLOADSTUB %s %s %s %d\n", arg1, arg2, arg3, code);
+                    "###CLSLOADSTUB unixinterface.cpp\n");
 	    if (clsloadCallbackStub != nullptr)
 	    {
 		    fprintf(stdout,
