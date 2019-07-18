@@ -1428,6 +1428,16 @@ static NATIVE_LIBRARY_HANDLE LOADLoadLibraryDirect(LPCSTR libraryNameOrPath)
     _ASSERTE(libraryNameOrPath != nullptr);
     _ASSERTE(libraryNameOrPath[0] != '\0');
 
+    size_t i = 0;
+    if (strchr(libraryNameOrPath, '/') != NULL)
+    {
+	    struct stat s;
+	    if (stat(libraryNameOrPath, &s) == -1)
+	    {
+		    return (NATIVE_LIBRARY_HANDLE)NULL;
+	    }
+    }
+
     NATIVE_LIBRARY_HANDLE dl_handle = dlopen(libraryNameOrPath, RTLD_LAZY);
     if (dl_handle == nullptr)
     {
