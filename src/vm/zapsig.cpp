@@ -1242,7 +1242,14 @@ BOOL ZapSig::EncodeMethod(
     TypeHandle ownerType;
 
 #ifdef FEATURE_READYTORUN_COMPILER
-
+    if(IsLargeVersionBubbleEnabled())
+    {
+	printf("Zapsig::EncodeMethod: IsLargeVersionBubbleEnabled\n");
+    }
+    else
+    {
+	printf("Zapsig::EncodeMethod: NOT IsLargeVersionBubbleEnabled\n");
+    }
     // For methods encoded outside of the version bubble, we use pResolvedToken which describes the metadata token from which the method originated
     // For tokens inside the version bubble we are not constrained by the contents of pResolvedToken and as such we skip this codepath
     // Generic interfaces in canonical form are an exception, we need to get the real type from the pResolvedToken so that the lookup at runtime
