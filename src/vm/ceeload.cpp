@@ -3394,7 +3394,21 @@ BOOL Module::IsInCurrentVersionBubble()
 
     if (IsReadyToRunCompilation())
     {
-	printf("SIMPLE NAME %s\n", m_pSimpleName);
+	//printf("SIMPLE NAME %s\n", m_pSimpleName);
+	if (strstr(m_pSimpleName,"Xamarin") == nullptr)
+	{
+		printf("EXCLUDING %s\n", m_pSimpleName);
+		return FALSE;
+	}
+
+	if(IsLargeVersionBubbleEnabled())
+	{
+		printf("INCLUDING %s\n", m_pSimpleName);
+	}
+	else
+	{
+		printf("EXCLUDING %s\n", m_pSimpleName);
+	}
         return IsLargeVersionBubbleEnabled();
     }
 
