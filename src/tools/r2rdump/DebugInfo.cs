@@ -142,7 +142,7 @@ namespace R2RDump
                 case Machine.Arm64:
                     return ((Arm64.Registers)regnum).ToString();
                 default:
-		    return "7777"
+		    return "7777";
                     //throw new NotImplementedException($"No implementation for machine type {machine}.");
             }
         }

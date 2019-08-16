@@ -3393,7 +3393,10 @@ BOOL Module::IsInCurrentVersionBubble()
         return TRUE;
 
     if (IsReadyToRunCompilation())
+    {
+	printf("SIMPLE NAME %s\n", m_pSimpleName);
         return IsLargeVersionBubbleEnabled();
+    }
 
 #ifdef FEATURE_COMINTEROP
     if (g_fNGenWinMDResilient)
