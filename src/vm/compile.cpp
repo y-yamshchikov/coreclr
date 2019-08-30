@@ -1975,19 +1975,40 @@ BOOL CEECompileInfo::NeedsTypeLayoutCheck(CORINFO_CLASS_HANDLE classHnd)
 
     TypeHandle th(classHnd);
 
+    SString name;
+    th.GetName(name);
+    printf("NeedsTypeLayoutCheck(): %S\n", name.GetUnicode());
+
     if (th.IsTypeDesc())
+    {
+	  printf("NO\n");
         return FALSE;
+    }
 
     MethodTable * pMT = th.AsMethodTable();
 
     if (!pMT->IsValueType())
+    {
+	  printf("NO\n");
         return FALSE;
+    }
 
     // Skip this check for equivalent types. Equivalent types are used for interop that ensures
     // matching layout.
     if (pMT->GetClass()->IsEquivalentType())
+    {
+	  printf("NO\n");
         return FALSE;
+    }
 
+    if(!pMT->IsLayoutFixedInCurrentVersionBubble())
+    {
+	  printf("YES\n");
+    }
+    else
+    {
+	  printf("NO\n");
+    }
     return !pMT->IsLayoutFixedInCurrentVersionBubble();
 }
 

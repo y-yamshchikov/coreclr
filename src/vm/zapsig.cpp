@@ -152,6 +152,9 @@ BOOL ZapSig::GetSignatureForTypeHandle(TypeHandle      handle,
     }
     CONTRACTL_END
 
+	SString name;
+	handle.GetName(name);
+	printf("%S\n", name.GetUnicode());
     if (handle.IsTypeDesc())
         return GetSignatureForTypeDesc(handle.AsTypeDesc(), pSigBuilder);
 

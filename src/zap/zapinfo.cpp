@@ -3503,7 +3503,7 @@ unsigned ZapInfo::getClassSize(CORINFO_CLASS_HANDLE cls)
     DWORD size = m_pEEJitInfo->getClassSize(cls);
 
 #ifdef FEATURE_READYTORUN_COMPILER
-    if (IsReadyToRunCompilation())
+    /*if (IsReadyToRunCompilation())
     {
         if (m_pEECompileInfo->NeedsTypeLayoutCheck(cls))
         {
@@ -3512,7 +3512,7 @@ unsigned ZapInfo::getClassSize(CORINFO_CLASS_HANDLE cls)
 
             m_ClassLoadTable.Load(cls, TRUE);
         }
-    }
+    }*/
 #endif
 
     return size;
