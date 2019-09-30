@@ -33,6 +33,8 @@ public:
 
 public:
 
+    HRESULT SetupBindingPaths::SetupVersionBubbleAssembliesBindingPaths(SString &sVersionBubbleAssemblies);
+
     HRESULT SetupBindingPaths(SString  &sTrustedPlatformAssemblies,
                               SString  &sPlatformResourceRoots,
                               SString  &sAppPaths,

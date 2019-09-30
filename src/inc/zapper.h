@@ -118,6 +118,7 @@ class Zapper
     SString                 m_appPaths;
     SString                 m_appNiPaths;
     SString                 m_platformWinmdPaths;
+    SString                 m_versionBubbleAssemblies;
 
 #if !defined(FEATURE_MERGE_JIT_AND_ENGINE)
     SString                 m_CLRJITPath;

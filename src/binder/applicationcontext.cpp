@@ -218,6 +218,19 @@ namespace BINDER_SPACE
         return hr;
     }
 
+    HRESULT ApplicationContext::SetupVersionBubbleAssembliesBindingPaths(SString &sVersionBubbleAssemblies,
+                                                                         BOOL     fAcquireLock)
+    {
+        BINDER_LOG_ENTER(W("ApplicationContext::SetupBindingVersionBubbleAssembliesPaths"));
+        BINDER_LOG_POINTER(W("this"), this);
+#ifndef CROSSGEN_COMPILE
+        CRITSEC_Holder contextLock(fAcquireLock ? GetCriticalSectionCookie() : NULL);
+#endif
+    Exit:
+        BINDER_LOG_LEAVE_HR(W("ApplicationContext::SSetupBindingVersionBubbleAssembliesPaths"), hr);
+        return hr;
+    }
+
     HRESULT ApplicationContext::SetupBindingPaths(SString &sTrustedPlatformAssemblies,
                                                   SString &sPlatformResourceRoots,
                                                   SString &sAppPaths,

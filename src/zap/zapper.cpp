@@ -881,7 +881,13 @@ void Zapper::CreateDependenciesLookupDomainInCurrentDomain()
 }
 
 
-void ZapperSetBindingPaths(ICorCompilationDomain *pDomain, SString &trustedPlatformAssemblies, SString &platformResourceRoots, SString &appPaths, SString &appNiPaths);
+void ZapperSetBindingPaths(
+    ICorCompilationDomain *pDomain,
+    SString &trustedPlatformAssemblies,
+    SString &platformResourceRoots,
+    SString &appPaths,
+    SString &appNiPaths,
+    SString &versionBubbleAssemblies);
 
 void Zapper::CreateCompilationDomain()
 {
@@ -915,7 +921,7 @@ void Zapper::CreateCompilationDomain()
     {
         // TPA-based binding
         // Add the trusted paths and apppath to the binding list
-        ZapperSetBindingPaths(m_pDomain, m_trustedPlatformAssemblies, m_platformResourceRoots, m_appPaths, m_appNiPaths);
+        ZapperSetBindingPaths(m_pDomain, m_trustedPlatformAssemblies, m_platformResourceRoots, m_appPaths, m_appNiPaths, m_versionBubbleAssemblies);
     }
 }
 

@@ -7153,11 +7153,18 @@ PTR_DomainAssembly AppDomain::FindAssembly(PTR_ICLRPrivAssembly pHostAssembly)
 
 #if !defined(DACCESS_COMPILE) && defined(FEATURE_NATIVE_IMAGE_GENERATION)
 
-void ZapperSetBindingPaths(ICorCompilationDomain *pDomain, SString &trustedPlatformAssemblies, SString &platformResourceRoots, SString &appPaths, SString &appNiPaths)
+void ZapperSetBindingPaths(
+    ICorCompilationDomain *pDomain,
+    SString &trustedPlatformAssemblies,
+    SString &platformResourceRoots,
+    SString &appPaths,
+    SString &appNiPaths,
+    SString &versionBubbleAssemblies)
 {
     CLRPrivBinderCoreCLR *pBinder = static_cast<CLRPrivBinderCoreCLR*>(((CompilationDomain *)pDomain)->GetFusionContext());
     _ASSERTE(pBinder != NULL);
     pBinder->SetupBindingPaths(trustedPlatformAssemblies, platformResourceRoots, appPaths, appNiPaths);
+    pBinder->SetupVersionBubbleAssembliesBindingPaths(versionBubbleAssemblies);
 #ifdef FEATURE_COMINTEROP
     ((CompilationDomain*)pDomain)->SetWinrtApplicationContext(NULL);
 #endif

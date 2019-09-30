@@ -120,6 +120,9 @@ namespace BINDER_SPACE
         inline DWORD GetAppDomainId();
         inline void SetAppDomainId(DWORD dwAppDomainId);
 
+        HRESULT ApplicationContext::SetupVersionBubbleAssembliesBindingPaths(/* in */ SString &sVersionBubbleAssemblies,
+                                                                             /* in */ BOOL     fAcquireLock);
+
         HRESULT SetupBindingPaths(/* in */ SString &sTrustedPlatformAssemblies,
                                   /* in */ SString &sPlatformResourceRoots,
                                   /* in */ SString &sAppPaths,
@@ -173,6 +176,8 @@ namespace BINDER_SPACE
 
         SimpleNameToFileNameMap * m_pTrustedPlatformAssemblyMap;
         TpaFileNameHash    * m_pFileNameHash;
+
+	StringArrayList    m_bubblingAssemblies;
     };
 
 #include "applicationcontext.inl"

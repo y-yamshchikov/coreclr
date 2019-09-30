@@ -188,6 +188,18 @@ HRESULT CLRPrivBinderCoreCLR::GetBinderID(
     return S_OK;
 }
          
+HRESULT CLRPrivBinderCoreCLR::SetupVersionBubbleAssembliesBindingPaths(SString &sVersionBubbleAssemblies)
+{
+    HRESULT hr = S_OK;
+    
+    EX_TRY
+    {
+        hr = m_appContext.SetupVersionBubbleAssembliesBindingPaths(sVersionBubbleAssemblies,  TRUE /* fAcquireLock */);
+    }
+    EX_CATCH_HRESULT(hr);
+    return hr;
+}
+
 HRESULT CLRPrivBinderCoreCLR::SetupBindingPaths(SString  &sTrustedPlatformAssemblies,
                                                 SString  &sPlatformResourceRoots,
                                                 SString  &sAppPaths,
