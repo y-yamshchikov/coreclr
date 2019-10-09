@@ -348,6 +348,7 @@ class Zapper
 
     void SetPlatformAssembliesPaths(LPCWSTR pwzPlatformAssembliesPaths);
     void SetTrustedPlatformAssemblies(LPCWSTR pwzTrustedPlatformAssemblies);
+    void SetVersionBubbleAssemblies(LPCWSTR pwzVersionBubbleAssemblies);
     void SetPlatformResourceRoots(LPCWSTR pwzPlatformResourceRoots);
     void SetAppPaths(LPCWSTR pwzAppPaths);
     void SetAppNiPaths(LPCWSTR pwzAppNiPaths);

@@ -1248,7 +1248,7 @@ BOOL ZapSig::EncodeMethod(
     // Generic interfaces in canonical form are an exception, we need to get the real type from the pResolvedToken so that the lookup at runtime
     // can find the type in interface map.
     // FUTURE: This condition should likely be changed or reevaluated once support for smaller version bubbles is implemented.
-    if (IsReadyToRunCompilation() && (!IsLargeVersionBubbleEnabled() || !pMethod->GetModule()->IsInCurrentVersionBubble() || (pMethod->IsSharedByGenericInstantiations() && pMethod->IsInterface())))
+    if (IsReadyToRunCompilation() && (!pMethod->GetModule()->IsInCurrentVersionBubble() || (pMethod->IsSharedByGenericInstantiations() && pMethod->IsInterface())))
     {
         if (pMethod->IsNDirect())
         {
@@ -1320,7 +1320,7 @@ BOOL ZapSig::EncodeMethod(
     }
 
     // FUTURE: This condition should likely be changed or reevaluated once support for smaller version bubbles is implemented.
-    if (IsReadyToRunCompilation() && (!IsLargeVersionBubbleEnabled() || !pMethod->GetModule()->IsInCurrentVersionBubble()))
+    if (IsReadyToRunCompilation() && (!pMethod->GetModule()->IsInCurrentVersionBubble()))
     {
         Module * pReferencingModule = pMethod->IsNDirect() ?
             pMethod->GetModule() :
@@ -1636,7 +1636,7 @@ void ZapSig::EncodeField(
     DWORD fieldFlags = ENCODE_FIELD_SIG_OwnerType;
 
 #ifdef FEATURE_READYTORUN_COMPILER
-    if (IsReadyToRunCompilation() && (!IsLargeVersionBubbleEnabled() || !pField->GetModule()->IsInCurrentVersionBubble()))
+    if (IsReadyToRunCompilation() && (!pField->GetModule()->IsInCurrentVersionBubble()))
     {
         if (pResolvedToken == NULL)
         {

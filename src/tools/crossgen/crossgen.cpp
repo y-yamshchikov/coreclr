@@ -34,7 +34,7 @@ enum ReturnValues
 #define NumItems(s) (sizeof(s) / sizeof(s[0]))
 
 STDAPI CreatePDBWorker(LPCWSTR pwzAssemblyPath, LPCWSTR pwzPlatformAssembliesPaths, LPCWSTR pwzTrustedPlatformAssemblies, LPCWSTR pwzPlatformResourceRoots, LPCWSTR pwzAppPaths, LPCWSTR pwzAppNiPaths, LPCWSTR pwzPdbPath, BOOL fGeneratePDBLinesInfo, LPCWSTR pwzManagedPdbSearchPath, LPCWSTR pwzPlatformWinmdPaths, LPCWSTR pwzDiasymreaderPath);
-STDAPI NGenWorker(LPCWSTR pwzFilename, DWORD dwFlags, LPCWSTR pwzPlatformAssembliesPaths, LPCWSTR pwzTrustedPlatformAssemblies, LPCWSTR pwzPlatformResourceRoots, LPCWSTR pwzAppPaths, LPCWSTR pwzOutputFilename=NULL, SIZE_T customBaseAddress=0, LPCWSTR pwzPlatformWinmdPaths=NULL, ICorSvcLogger *pLogger = NULL, LPCWSTR pwszCLRJITPath = nullptr);
+STDAPI NGenWorker(LPCWSTR pwzFilename, DWORD dwFlags, LPCWSTR pwzPlatformAssembliesPaths, LPCWSTR pwzTrustedPlatformAssemblies, LPCWSTR pwzPlatformResourceRoots, LPCWSTR pwzAppPaths, LPCWSTR pwzVersionBubbleAssemblies=NULL, LPCWSTR pwzOutputFilename=NULL, SIZE_T customBaseAddress=0, LPCWSTR pwzPlatformWinmdPaths=NULL, ICorSvcLogger *pLogger = NULL, LPCWSTR pwszCLRJITPath = nullptr);
 void SetSvcLogger(ICorSvcLogger *pCorSvcLogger);
 void SetMscorlibPath(LPCWSTR wzSystemDirectory);
 
@@ -153,7 +153,7 @@ void PrintUsageHelper()
        W("                           dependency versions\n")
        W("    /LargeVersionBubble  - Generate image with a version bubble including all\n")
        W("                           input assemblies\n")
-
+       W("    /vba <file[") PATH_SEPARATOR_STR_W W("file]>   - Generate image with a version bubble including these assemblies\n")
 #endif
 #ifdef FEATURE_ENABLE_NO_ADDRESS_SPACE_RANDOMIZATION
        W("    /BaseAddress <value> - Specifies base address to use for compilation.\n")
@@ -430,6 +430,7 @@ int _cdecl wmain(int argc, __in_ecount(argc) WCHAR **argv)
     LPCWSTR pwzTrustedPlatformAssemblies = nullptr;
     LPCWSTR pwzAppPaths = nullptr;
     LPCWSTR pwzAppNiPaths = nullptr;
+    LPCWSTR pwzVersionBubbleAssemblies = nullptr;
     LPCWSTR pwzPlatformAssembliesPaths = nullptr;
     LPCWSTR pwzPlatformWinmdPaths = nullptr;
     StackSString wzDirectoryToStorePDB;
@@ -463,6 +464,7 @@ int _cdecl wmain(int argc, __in_ecount(argc) WCHAR **argv)
     LPWSTR *argv2;
 
     SString ssTrustedPlatformAssemblies;
+    SString ssVersionBubbleAssemblies;
 
     if (argc == 0)
     {
@@ -547,6 +549,21 @@ int _cdecl wmain(int argc, __in_ecount(argc) WCHAR **argv)
             dwFlags |= NGENWORKER_FLAGS_LARGEVERSIONBUBBLE;
             fLargeVersionBubbleSwitch = true;
         }
+	else if (MatchParameter(*argv, W("vba")))
+	{
+            if (ssVersionBubbleAssemblies.IsEmpty())
+            {
+                ssVersionBubbleAssemblies.Append(argv[1]);
+                // skip path list
+                argv++;
+                argc--;
+            }
+	    else
+	    {
+                OutputErr(W("The /r and /p switches cannot be both specified.\n"));
+                exit(FAILURE_RESULT);
+	    }
+	}
 #endif
 #ifdef FEATURE_ENABLE_NO_ADDRESS_SPACE_RANDOMIZATION
         else if (MatchParameter(*argv, W("BaseAddress")))
@@ -827,6 +844,11 @@ int _cdecl wmain(int argc, __in_ecount(argc) WCHAR **argv)
         pwzTrustedPlatformAssemblies = (WCHAR *)ssTrustedPlatformAssemblies.GetUnicode();
     }
 
+    if (!ssVersionBubbleAssemblies.IsEmpty())
+    {
+        pwzVersionBubbleAssemblies = (WCHAR *)ssVersionBubbleAssemblies.GetUnicode();
+    }
+
     if ((pwzTrustedPlatformAssemblies != nullptr) && (pwzPlatformAssembliesPaths != nullptr))
     {
         OutputErr(W("The /r and /p switches cannot be both specified.\n"));
@@ -958,6 +980,7 @@ int _cdecl wmain(int argc, __in_ecount(argc) WCHAR **argv)
          pwzTrustedPlatformAssemblies,
          pwzPlatformResourceRoots,
          pwzAppPaths,
+	 pwzVersionBubbleAssemblies,
          pwzOutputFilename,
          baseAddress,
          pwzPlatformWinmdPaths

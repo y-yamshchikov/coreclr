@@ -672,6 +672,17 @@ bool IsInSameVersionBubble(Assembly * current, Assembly * target)
     if (current == target)
         return true;
 
+    AppDomain *pDomainCurrent = current->GetDomain()->AsAppDomain();
+    CLRPrivBinderCoreCLR *pBinderCurrent = static_cast<CLRPrivBinderCoreCLR*>(((CompilationDomain *)pDomainCurrent)->GetFusionContext());
+
+    SString sSimpleNameTarget(SString::Utf8, target->GetSimpleName());
+    sSimpleNameTarget.Normalize();
+
+    if (pBinderCurrent->IsAssemblySimpleNameInVersionBubbleList(sSimpleNameTarget))
+    {
+	    return true;
+    }
+
     return IsLargeVersionBubbleEnabled();
 }
 
@@ -4631,7 +4642,8 @@ TypeCompareState CEEInfo::compareTypesForCast(
     // always reported back as May, except for CoreLib version bubble.
     if (IsReadyToRunCompilation() && (result == TypeCompareState::MustNot)
         && !GetAppDomain()->ToCompilationDomain()->GetTargetModule()->IsSystem()
-        && !IsLargeVersionBubbleEnabled())
+        && !IsLargeVersionBubbleEnabled()
+	&& ((static_cast<CLRPrivBinderCoreCLR*>(GetAppDomain()->ToCompilationDomain()->GetFusionContext()))->GetVersionBubbleAssembliesListCount() < 2))
     {
         result = TypeCompareState::May;
     }

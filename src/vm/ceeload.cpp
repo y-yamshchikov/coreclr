@@ -3393,6 +3393,19 @@ BOOL Module::IsInCurrentVersionBubble()
         return TRUE;
 
     if (IsReadyToRunCompilation())
+    {
+        CLRPrivBinderCoreCLR *pBinder= static_cast<CLRPrivBinderCoreCLR*>((pAppDomain->ToCompilationDomain()->GetFusionContext()));
+
+        SString sSimpleName(SString::Utf8, GetAssembly()->GetSimpleName());
+        sSimpleName.Normalize();
+
+        if (pBinder->IsAssemblySimpleNameInVersionBubbleList(sSimpleName))
+        {
+                return true;
+        }
+    }
+
+    if (IsReadyToRunCompilation())
         return IsLargeVersionBubbleEnabled();
 
 #ifdef FEATURE_COMINTEROP

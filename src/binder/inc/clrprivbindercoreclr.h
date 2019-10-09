@@ -33,7 +33,11 @@ public:
 
 public:
 
-    HRESULT SetupBindingPaths::SetupVersionBubbleAssembliesBindingPaths(SString &sVersionBubbleAssemblies);
+    int GetVersionBubbleAssembliesListCount();
+
+    BOOL IsAssemblySimpleNameInVersionBubbleList(/* in */SString sSimpleName);
+
+    HRESULT SetupVersionBubbleAssembliesBindingPaths(SString &sVersionBubbleAssemblies);
 
     HRESULT SetupBindingPaths(SString  &sTrustedPlatformAssemblies,
                               SString  &sPlatformResourceRoots,

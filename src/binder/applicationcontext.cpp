@@ -218,14 +218,133 @@ namespace BINDER_SPACE
         return hr;
     }
 
+    int ApplicationContext::GetVersionBubbleAssembliesListCount()
+    {
+	    return m_versionBubbleAssembliesSimpleNames.GetCount();
+    }
+
+    BOOL ApplicationContext::IsAssemblySimpleNameInVersionBubbleList(SString sSimpleName)
+    {
+	BOOL res = FALSE;
+
+	sSimpleName.Normalize();
+	printf("in: %S\n", sSimpleName.GetUnicode());
+	for (UINT i = 0; i < m_versionBubbleAssembliesSimpleNames.GetCount(); ++i)
+	{
+		const SString& ss = m_versionBubbleAssembliesSimpleNames[i];
+		printf("vba: %08x %08x %S\n", &ss, ss.GetUnicode(), ss.GetUnicode());
+		if (sSimpleName.Compare(m_versionBubbleAssembliesSimpleNames[i]) == 0)
+		{
+		    printf("    vba: %08x %08x %S\n", &ss, ss.GetUnicode(), ss.GetUnicode());
+		    return TRUE;
+		}
+		printf("    vba: %08x %08x %S\n", &ss, ss.GetUnicode(), ss.GetUnicode());
+	}
+
+	return res;
+    }
+
     HRESULT ApplicationContext::SetupVersionBubbleAssembliesBindingPaths(SString &sVersionBubbleAssemblies,
                                                                          BOOL     fAcquireLock)
     {
+        HRESULT hr = S_OK;
         BINDER_LOG_ENTER(W("ApplicationContext::SetupBindingVersionBubbleAssembliesPaths"));
         BINDER_LOG_POINTER(W("this"), this);
 #ifndef CROSSGEN_COMPILE
         CRITSEC_Holder contextLock(fAcquireLock ? GetCriticalSectionCookie() : NULL);
 #endif
+        if (m_versionBubbleAssembliesSimpleNames.GetCount() != 0)
+        {
+#if defined(BINDER_DEBUG_LOG)
+            BINDER_LOG(W("ApplicationContext::SetupVersionBubbleAssembliesBindingPaths: Version Bubble binding paths already setup"));
+#endif // BINDER_LOG_STRING
+            GO_WITH_HRESULT(S_OK);
+        }
+
+
+        //
+        // Parse Version Bubble Assemblies
+        //
+        
+        sVersionBubbleAssemblies.Normalize();
+
+        for (SString::Iterator i = sVersionBubbleAssemblies.Begin(); i != sVersionBubbleAssemblies.End(); )
+        {
+            SString fileName;
+            HRESULT pathResult = S_OK;
+            IF_FAIL_GO(pathResult = GetNextPath(sVersionBubbleAssemblies, i, fileName));
+            if (pathResult == S_FALSE)
+            {
+                break;
+            }
+
+#ifndef CROSSGEN_COMPILE
+            if (Path::IsRelative(fileName))
+            {
+                BINDER_LOG_STRING(W("ApplicationContext::SetupVersionBubbleAssembliesBindingPaths: Relative paths not allowed"), fileName);
+                GO_WITH_HRESULT(E_INVALIDARG);
+            }
+#endif
+
+            // Find the beginning of the simple name
+            SString::Iterator iSimpleNameStart = fileName.End();
+            
+            if (!fileName.FindBack(iSimpleNameStart, DIRECTORY_SEPARATOR_CHAR_W))
+            {
+                iSimpleNameStart = fileName.Begin();
+            }
+            else
+            {
+                // Advance past the directory separator to the first character of the file name
+                iSimpleNameStart++;
+            }
+
+            if (iSimpleNameStart == fileName.End())
+            {
+                GO_WITH_HRESULT(E_INVALIDARG);
+            }
+
+            SString simpleName;
+            bool isNativeImage = false;
+
+            // GCC complains if we create SStrings inline as part of a function call
+            SString sNiDll(W(".ni.dll"));
+            SString sNiExe(W(".ni.exe"));
+            SString sNiWinmd(W(".ni.winmd"));
+            SString sDll(W(".dll"));
+            SString sExe(W(".exe"));
+            SString sWinmd(W(".winmd"));
+            
+            if (fileName.EndsWithCaseInsensitive(sNiDll) ||
+                fileName.EndsWithCaseInsensitive(sNiExe))
+            {
+                simpleName.Set(fileName, iSimpleNameStart, fileName.End() - 7);
+                isNativeImage = true;
+            }
+            else if (fileName.EndsWithCaseInsensitive(sNiWinmd))
+            {
+                simpleName.Set(fileName, iSimpleNameStart, fileName.End() - 9);
+                isNativeImage = true;
+            }
+            else if (fileName.EndsWithCaseInsensitive(sDll) ||
+                     fileName.EndsWithCaseInsensitive(sExe))
+            {
+                simpleName.Set(fileName, iSimpleNameStart, fileName.End() - 4);
+            }
+            else if (fileName.EndsWithCaseInsensitive(sWinmd))
+            {
+                simpleName.Set(fileName, iSimpleNameStart, fileName.End() - 6);
+            }
+            else
+            {
+                // Invalid filename
+                GO_WITH_HRESULT(E_INVALIDARG);
+            }
+
+	    simpleName.Normalize();
+            m_versionBubbleAssembliesSimpleNames.AppendIfNotThere(simpleName);
+	}
+
     Exit:
         BINDER_LOG_LEAVE_HR(W("ApplicationContext::SSetupBindingVersionBubbleAssembliesPaths"), hr);
         return hr;

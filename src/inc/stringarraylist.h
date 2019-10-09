@@ -16,6 +16,7 @@ class StringArrayList
 {
     ArrayList m_Elements;
 public:
+    StringArrayList(){}
     DWORD GetCount() const;
     SString& operator[] (DWORD idx) const; 
     SString& Get (DWORD idx) const; 
@@ -24,6 +25,8 @@ public:
     void AppendIfNotThere(const SString& string);
 #endif
     ~StringArrayList();
+private:
+    StringArrayList(const StringArrayList&);
 };
 
 

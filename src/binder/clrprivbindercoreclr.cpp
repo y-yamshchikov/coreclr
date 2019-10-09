@@ -188,6 +188,18 @@ HRESULT CLRPrivBinderCoreCLR::GetBinderID(
     return S_OK;
 }
          
+int CLRPrivBinderCoreCLR::GetVersionBubbleAssembliesListCount()
+{
+	//TODO try-catch
+	return m_appContext.GetVersionBubbleAssembliesListCount();
+}
+
+BOOL CLRPrivBinderCoreCLR::IsAssemblySimpleNameInVersionBubbleList(SString sSimpleName)
+{
+	//TODO try-catch
+	return m_appContext.IsAssemblySimpleNameInVersionBubbleList(sSimpleName);
+}
+
 HRESULT CLRPrivBinderCoreCLR::SetupVersionBubbleAssembliesBindingPaths(SString &sVersionBubbleAssemblies)
 {
     HRESULT hr = S_OK;

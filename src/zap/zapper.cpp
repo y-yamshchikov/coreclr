@@ -33,7 +33,7 @@ static bool s_fNGenNoMetaData;
 // Zapper Object instead of creating one on your own.
 
 
-STDAPI NGenWorker(LPCWSTR pwzFilename, DWORD dwFlags, LPCWSTR pwzPlatformAssembliesPaths, LPCWSTR pwzTrustedPlatformAssemblies, LPCWSTR pwzPlatformResourceRoots, LPCWSTR pwzAppPaths, LPCWSTR pwzOutputFilename=NULL, SIZE_T customBaseAddress=0, LPCWSTR pwzPlatformWinmdPaths=NULL, ICorSvcLogger *pLogger = NULL, LPCWSTR pwszCLRJITPath = nullptr)
+STDAPI NGenWorker(LPCWSTR pwzFilename, DWORD dwFlags, LPCWSTR pwzPlatformAssembliesPaths, LPCWSTR pwzTrustedPlatformAssemblies, LPCWSTR pwzPlatformResourceRoots, LPCWSTR pwzAppPaths, LPCWSTR pwzVersionBubbleAssemblies=NULL, LPCWSTR pwzOutputFilename=NULL, SIZE_T customBaseAddress=0, LPCWSTR pwzPlatformWinmdPaths=NULL, ICorSvcLogger *pLogger = NULL, LPCWSTR pwszCLRJITPath = nullptr)
 {    
     HRESULT hr = S_OK;
 
@@ -90,6 +90,9 @@ STDAPI NGenWorker(LPCWSTR pwzFilename, DWORD dwFlags, LPCWSTR pwzPlatformAssembl
 
         if (pwzTrustedPlatformAssemblies != nullptr)
             zap->SetTrustedPlatformAssemblies(pwzTrustedPlatformAssemblies);
+
+        if (pwzVersionBubbleAssemblies != nullptr)
+            zap->SetVersionBubbleAssemblies(pwzVersionBubbleAssemblies);
 
         if (pwzPlatformResourceRoots != nullptr)
             zap->SetPlatformResourceRoots(pwzPlatformResourceRoots);
@@ -1665,6 +1668,11 @@ void Zapper::SetPlatformAssembliesPaths(LPCWSTR pwzPlatformAssembliesPaths)
 void Zapper::SetTrustedPlatformAssemblies(LPCWSTR pwzTrustedPlatformAssemblies)
 {
     m_trustedPlatformAssemblies.Set(pwzTrustedPlatformAssemblies);
+}
+
+void Zapper::SetVersionBubbleAssemblies(LPCWSTR pwzVersionBubbleAssemblies)
+{
+    m_versionBubbleAssemblies.Set(pwzVersionBubbleAssemblies);
 }
 
 void Zapper::SetPlatformResourceRoots(LPCWSTR pwzPlatformResourceRoots)
